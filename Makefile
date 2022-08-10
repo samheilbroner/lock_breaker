@@ -1,0 +1,2 @@
+app:
+	gcloud app deploy

@@ -1,0 +1,7 @@
+pytest
+flask
+pandas
+numpy
+cryptography
+Pillow
+google-cloud-storage
