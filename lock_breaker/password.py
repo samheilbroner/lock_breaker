@@ -4,6 +4,7 @@ from typing import ByteString, Union
 from cryptography.fernet import Fernet
 
 from lock_breaker import DEFAULT_PASSWORD_LENGTH
+from lock_breaker.hasing import sha_hash
 from lock_breaker.keys import TEXT_GENERATION_KEY
 
 
@@ -16,9 +17,8 @@ def random_digits_from_encryption_key(message, key: str = TEXT_GENERATION_KEY,
     :param password_length: length of return password
     :return: a password of digits
     """
-    f = Fernet(key)
-    token = f.encrypt(message.encode())
-    password = hash(token) % (10 ** (password_length))
+    token = message + key.decode('utf-8')
+    password = sha_hash(token) % (10 ** (password_length))
     return str(password)
 
 

@@ -1,6 +1,7 @@
 import random
 
 import numpy
+import numpy as np
 
 from lock_breaker import TEXT_LENGTH
 from lock_breaker.keys import TEXT_GENERATION_KEY
@@ -8,6 +9,7 @@ from lock_breaker.password import random_digits_from_encryption_key
 
 
 def levenshtein_distance(token1, token2):
+    print(token1, token2)
     distances = numpy.zeros((len(token1) + 1, len(token2) + 1))
 
     for t1 in range(len(token1) + 1):
@@ -35,19 +37,21 @@ def levenshtein_distance(token1, token2):
     return distances[len(token1)][len(token2)]
 
 
-def random_string(length):
+def random_string(length, seed):
+    np.random.seed(seed)
+    print('seed = ', seed)
     answer = ''
-    for _ in range(length):
-        index = random.randint(0, 25)
+    numbers = np.random.randint(0, 25, length)
+    for index in numbers:
         answer += list('abcdefghijklmnopqrstuvwxyz')[index]
     return answer
 
 
 def text_to_copy(current_time: str) -> str:
-    hsh = int(random_digits_from_encryption_key(current_time, TEXT_GENERATION_KEY,
+    hsh = int(random_digits_from_encryption_key(current_time,
+                                                TEXT_GENERATION_KEY,
                                                 password_length=8))
-    random.seed(hsh)
-    return random_string(TEXT_LENGTH)
+    return random_string(TEXT_LENGTH, seed=hsh)
 
 
 def add_returns_to_text(text: str):

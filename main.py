@@ -23,12 +23,14 @@ def index():
 def puzzle_for_current_time(current_time):
     text = text_to_copy(current_time)
     render_text(text)
+    print(current_time)
     if request.method == 'GET':
         return render_template('puzzle_for_current_time.html',
                                image_path=url_for('serve_image',
                                                   image_name=IMAGE_FILE_NAME))
     elif request.method == 'POST':
-        return handle_encryption_request(text, current_time)
+        copied_text = request.form['text']
+        return handle_encryption_request(text, current_time, copied_text)
 
 
 def _impute_empty_string(string: str) -> str:
@@ -38,13 +40,11 @@ def _impute_empty_string(string: str) -> str:
         return string
 
 
-def handle_encryption_request(text, current_time):
-    copied_text = request.form['text']
+def handle_encryption_request(text, current_time, copied_text):
     to_decrypt = _impute_empty_string(request.form['decrypt'])
     to_encrypt = _impute_empty_string(request.form['encrypt'])
     if input_is_valid(copied_text, text, current_time):
-        code = read_encryption_key()
-        return redirect(url_for('password', code=code,
+        return redirect(url_for('password',
                                 to_encrypt=to_encrypt,
                                 to_decrypt=to_decrypt))
     else:
@@ -57,22 +57,21 @@ def serve_image(image_name):
                                as_attachment=True)
 
 
-@app.route('/password/<code>/<to_encrypt>/<to_decrypt>', methods=['GET', 'POST'])
-def password(code, to_encrypt, to_decrypt):
+@app.route('/password/<to_encrypt>/<to_decrypt>', methods=['GET', 'POST'])
+def password(to_encrypt, to_decrypt):
     key = read_encryption_key()
     encrypt_answer = encrypt(to_encrypt, key)
     decrypt_answer = decrypt(to_decrypt, key)
     if request.method == 'GET':
-        return render_template('password.html', code=code,
+        return render_template('password.html',
                                encrypt_answer=encrypt_answer,
                                decrypt_answer=decrypt_answer)
     elif request.method == 'POST':
         update_encryption_key()
-        code = read_encryption_key()
         return redirect(
-            url_for('password', code=code, encrypt_answer=encrypt_answer,
+            url_for('password', encrypt_answer=encrypt_answer,
                     decrypt_answer=decrypt_answer))
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=6006)
+    app.run(debug=True, port=8888)
