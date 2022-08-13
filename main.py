@@ -8,6 +8,7 @@ from lock_breaker.gcs import read_encryption_key, update_encryption_key
 from lock_breaker.password import encrypt, decrypt
 from lock_breaker.rendering import render_text
 from lock_breaker.string import text_to_copy
+from lock_breaker.time import within_time_limit
 from lock_breaker.validation import input_is_valid
 
 app = Flask(__name__)
@@ -23,7 +24,6 @@ def index():
 def puzzle_for_current_time(current_time):
     text = text_to_copy(current_time)
     render_text(text)
-    print(current_time)
     if request.method == 'GET':
         return render_template('puzzle_for_current_time.html',
                                image_path=url_for('serve_image',
@@ -43,8 +43,11 @@ def _impute_empty_string(string: str) -> str:
 def handle_encryption_request(text, current_time, copied_text):
     to_decrypt = _impute_empty_string(request.form['decrypt'])
     to_encrypt = _impute_empty_string(request.form['encrypt'])
+    key = read_encryption_key()
+    code = encrypt(current_time, key)
     if input_is_valid(copied_text, text, current_time):
         return redirect(url_for('password',
+                                code=code,
                                 to_encrypt=to_encrypt,
                                 to_decrypt=to_decrypt))
     else:
@@ -57,19 +60,23 @@ def serve_image(image_name):
                                as_attachment=True)
 
 
-@app.route('/password/<to_encrypt>/<to_decrypt>', methods=['GET', 'POST'])
-def password(to_encrypt, to_decrypt):
+@app.route('/password/<code>/<to_encrypt>/<to_decrypt>', methods=['GET', 'POST'])
+def password(code, to_encrypt, to_decrypt):
     key = read_encryption_key()
+    estimated_time = decrypt(code, key)
     encrypt_answer = encrypt(to_encrypt, key)
     decrypt_answer = decrypt(to_decrypt, key)
     if request.method == 'GET':
-        return render_template('password.html',
-                               encrypt_answer=encrypt_answer,
-                               decrypt_answer=decrypt_answer)
+        if within_time_limit(estimated_time):
+            return render_template('password.html',
+                                   encrypt_answer=encrypt_answer,
+                                   decrypt_answer=decrypt_answer)
+        else:
+            return redirect(url_for('index'))
     elif request.method == 'POST':
         update_encryption_key()
         return redirect(
-            url_for('password', encrypt_answer=encrypt_answer,
+            url_for('password', code=code, encrypt_answer=encrypt_answer,
                     decrypt_answer=decrypt_answer))
 
 
