@@ -4,7 +4,9 @@ from flask import Flask, redirect, url_for, render_template, request, \
     send_from_directory
 
 from lock_breaker import IMAGE_FILE_NAME, PUZZLE_URL, TEMP
-from lock_breaker.gcs import read_encryption_key, update_encryption_key
+from lock_breaker.gcs import read_encryption_key, update_encryption_key, \
+    igloo_api_key_writer, igloo_api_key_reader
+from lock_breaker.igloo import get_igloo_pins
 from lock_breaker.password import encrypt, decrypt
 from lock_breaker.rendering import render_text
 from lock_breaker.string import text_to_copy
@@ -20,14 +22,35 @@ def index():
     return redirect(url_for(PUZZLE_URL, current_time=current_time))
 
 
+def _api_key_exists():
+    try:
+        _ = igloo_api_key_reader()
+        return True
+    except:
+        return False
+
+
+@app.route('/igloo_api_key', methods=['GET', 'POST'])
+def igloo_api_key():
+    if request.method == 'GET':
+        return render_template('enter_api_key.html')
+    elif request.method == 'POST':
+        copied_text = request.form['text']
+        igloo_api_key_writer(copied_text)
+        return redirect(url_for('index'))
+
+
 @app.route(f'/{PUZZLE_URL}/<current_time>', methods=['GET', 'POST'])
 def puzzle_for_current_time(current_time):
     text = text_to_copy(current_time)
     render_text(text)
     if request.method == 'GET':
-        return render_template('puzzle_for_current_time.html',
-                               image_path=url_for('serve_image',
-                                                  image_name=IMAGE_FILE_NAME))
+        if _api_key_exists():
+            return render_template('puzzle_for_current_time.html',
+                                   image_path=url_for('serve_image',
+                                                      image_name=IMAGE_FILE_NAME))
+        else:
+            return redirect(url_for('igloo_api_key'))
     elif request.method == 'POST':
         copied_text = request.form['text']
         return handle_encryption_request(text, current_time, copied_text)
@@ -60,17 +83,20 @@ def serve_image(image_name):
                                as_attachment=True)
 
 
-@app.route('/password/<code>/<to_encrypt>/<to_decrypt>', methods=['GET', 'POST'])
+@app.route('/password/<code>/<to_encrypt>/<to_decrypt>',
+           methods=['GET', 'POST'])
 def password(code, to_encrypt, to_decrypt):
     key = read_encryption_key()
     estimated_time = decrypt(code, key)
     encrypt_answer = encrypt(to_encrypt, key)
     decrypt_answer = decrypt(to_decrypt, key)
+    lock_codes = get_igloo_pins()
     if request.method == 'GET':
         if within_time_limit(estimated_time):
             return render_template('password.html',
                                    encrypt_answer=encrypt_answer,
-                                   decrypt_answer=decrypt_answer)
+                                   decrypt_answer=decrypt_answer,
+                                   igloo_codes=lock_codes)
         else:
             return redirect(url_for('index'))
     elif request.method == 'POST':
@@ -81,4 +107,4 @@ def password(code, to_encrypt, to_decrypt):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8888)
+    app.run(debug=True, port=8080)
