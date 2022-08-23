@@ -4,7 +4,7 @@ from typing import ByteString, Union
 from cryptography.fernet import Fernet
 
 from lock_breaker import DEFAULT_PASSWORD_LENGTH
-from lock_breaker.hasing import sha_hash
+from lock_breaker.hashing import sha_hash
 from lock_breaker.keys import TEXT_GENERATION_KEY
 
 

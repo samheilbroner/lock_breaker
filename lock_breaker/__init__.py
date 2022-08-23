@@ -14,4 +14,6 @@ IGLOO_API_URL = 'https://api.igloodeveloper.co/v2'
 PST = 'PST8PDT'
 PIN = 'pin'
 DOOR_LOCK_ID = 'IGK308b7207d'
-IGLOO_LOCK_IDS = [DOOR_LOCK_ID]
+PADLOCK_ID = 'IGP113808443'
+IGLOO_LOCK_IDS = [DOOR_LOCK_ID,
+                  PADLOCK_ID]
