@@ -1,7 +1,7 @@
 TEMP = '/tmp'
 IMAGE_FILE_NAME = 'text.png'
 IMAGE_PATH = f'{TEMP}/{IMAGE_FILE_NAME}'
-TEXT_LENGTH = 400
+TEXT_LENGTH = 1000
 PUZZLE_URL = 'puzzle_for_current_time'
 
 PASSWORD_PATH = 'key.txt'
