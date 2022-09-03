@@ -43,29 +43,30 @@ class Lock:
         return f'{IGLOO_API_URL}/locks/{self.lock_id}/pin'
 
     def hourly_pin(self):
-        n = random.randint(1, 3)
-        pst = pytz.timezone('US/Pacific')
-        start = datetime.datetime.now().astimezone()
-        start = start.astimezone(pst)
-        end = start + datetime.timedelta(hours=2)
+        try:
+            n = random.randint(1, 3)
+            pst = pytz.timezone('US/Pacific')
+            start = datetime.datetime.now().astimezone()
+            start = start.astimezone(pst)
+            end = start + datetime.timedelta(hours=2)
 
-        start = _make_date_api_readable(start)
-        end = _make_date_api_readable(end)
+            start = _make_date_api_readable(start)
+            end = _make_date_api_readable(end)
 
-        data = {
-            'startDate': start,
-            'endDate': end,
-            'variance': n
-        }
+            data = {
+                'startDate': start,
+                'endDate': end,
+                'variance': n
+            }
 
-        res = requests.post(
-            f'{self._lock_api_url}/hourly',
-            json=data,
-            headers=self.manager.header
-        )
-        return res.json()[PIN]
-        # except:
-        #     return 'Need to enter API key.'
+            res = requests.post(
+                f'{self._lock_api_url}/hourly',
+                json=data,
+                headers=self.manager.header
+            )
+            return res.json()[PIN]
+        except:
+            return 'Need to enter correct API key.'
 
 def fetch_igloo_pin(lock_id):
     api_key = igloo_api_key_reader()
