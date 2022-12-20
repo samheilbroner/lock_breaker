@@ -15,7 +15,7 @@ def get_size(txt, font):
 
 def image_from_text(text:str, image_destination: str):
     fontname = "arial.ttf"
-    fontsize = 30
+    fontsize = 15
 
     colorText = "black"
     colorOutline = "black"
