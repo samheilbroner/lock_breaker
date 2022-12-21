@@ -3,6 +3,7 @@ IMAGE_FILE_NAME = 'text.png'
 IMAGE_PATH = f'{TEMP}/{IMAGE_FILE_NAME}'
 TEXT_LENGTH = 2500
 PUZZLE_URL = 'puzzle_for_current_time'
+MAX_MINUTES_TO_COMPLETE = 25
 
 PASSWORD_PATH = 'key.txt'
 TEXT_GENERATION_KEY_PATH = 'text_generation_key.txt'
