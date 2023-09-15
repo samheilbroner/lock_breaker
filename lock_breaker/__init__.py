@@ -16,5 +16,7 @@ PST = 'PST8PDT'
 PIN = 'pin'
 DOOR_LOCK_ID = 'IGK308b7207d'
 PADLOCK_ID = 'IGP113808443'
+TAOS_ID = 'IGK316f121ef'
 IGLOO_LOCK_IDS = [DOOR_LOCK_ID,
-                  PADLOCK_ID]
+                  PADLOCK_ID,
+                  TAOS_ID]
