@@ -1,4 +1,5 @@
 service_account_credentials.json
+local-access.json
 scratch.txt
 scratch.py
 .idea
