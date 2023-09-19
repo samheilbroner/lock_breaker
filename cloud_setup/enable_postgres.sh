@@ -38,3 +38,9 @@ else
   # Database exists
   echo "Database '$DATABASE_NAME' already exists in instance '$INSTANCE_NAME'. Doing nothing."
 fi
+
+echo 'Setting password for user postgres...'
+
+# Set password for user postgres, get from gcloud secrets manager.
+export SQL_PASSWORD_VALUE=$(gcloud secrets versions access latest --secret=$PSQL_PASSWORD)
+gcloud sql users set-password postgres --instance=$INSTANCE_NAME --password=$SQL_PASSWORD_VALUE

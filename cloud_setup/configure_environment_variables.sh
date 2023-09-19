@@ -9,3 +9,4 @@ export ACCESS_TOKEN
 export SQL_SERVICE_NAME="sql-component.googleapis.com"
 export PROXY_PORT="5432"
 export SQL_CREDENTIALS_FILE="./secrets/sql-editor-sa-key.json"
+export PSQL_PASSWORD="psql_password"
