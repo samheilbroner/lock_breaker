@@ -13,8 +13,14 @@ def get_size(txt, font):
     testDraw = ImageDraw.Draw(testImg)
     return testDraw.textsize(txt, font)
 
-def image_from_text(text:str, image_destination: str):
-    fontname = "arial.ttf"
+
+def get_size(text, font):
+    d = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+    return d.textsize(text, font)
+
+
+def image_from_text(text: str, image_destination: str):
+    fontname = "arial.ttf"  # Make sure this font is available on your system
     fontsize = 15
 
     colorText = "black"
@@ -23,11 +29,19 @@ def image_from_text(text:str, image_destination: str):
 
     font = ImageFont.truetype(font=fontname, size=fontsize)
     width, height = get_size(text, font)
-    frame_width, frame_height = int(1.1*width), int(1*height)
+
+    # Adding padding
+    padding = 10
+    frame_width, frame_height = width + 2 * padding, height + 2 * padding
+
     img = Image.new('RGB', (frame_width, frame_height), colorBackground)
     d = ImageDraw.Draw(img)
-    d.text((2, 2), text, fill=colorText, font=font)
-    d.rectangle((0, 0, frame_width - 2, frame_height - 2), outline=colorOutline)
+
+    # Draw text at padded position
+    d.text((padding, padding), text, fill=colorText, font=font)
+
+    # Draw rectangle around the border
+    d.rectangle((0, 0, frame_width - 1, frame_height - 1), outline=colorOutline)
 
     img.save(image_destination)
 

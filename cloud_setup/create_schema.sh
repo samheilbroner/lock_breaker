@@ -1,19 +1,20 @@
-PROJECT_ID=$(gcloud config get-value project)
+#!/bin/bash
 
-# Check if the 'lock_breaker' dataset exists
-bq ls --project_id="$PROJECT_ID" | grep 'lock_breaker' &> /dev/null
+# Run Cloud SQL Proxy
+echo "Starting Cloud SQL Proxy..."
+./cloud_sql_proxy ${PROJECT_ID}:${REGION}:${INSTANCE_NAME} -p $PROXY_PORT
 
-# Create the 'lock_breaker' dataset if it doesn't exist
-if [ $? -ne 0 ]; then
-    bq mk --dataset "$PROJECT_ID":lock_breaker
-    echo "Dataset 'lock_breaker' created."
-else
-    echo "Dataset 'lock_breaker' already exists."
-fi
 
-# Connect to the database and create a schema if it doesn't exist
-gcloud sql connect $INSTANCE_NAME --user=postgres <<EOF
-  SELECT 'CREATE SCHEMA IF NOT EXISTS $SCHEMA_NAME;' WHERE NOT EXISTS (SELECT schema_name FROM information_schema.schemata WHERE schema_name = '$SCHEMA_NAME') \gexec
+# Allow some time for the proxy to start
+sleep 5
+echo "Cloud SQL Proxy started."
+
+# Connect to the PostgreSQL instance and create the schema if it doesn't exist
+echo "Connecting to PostgreSQL database..."
+psql "host=localhost port=${PROXY_PORT} dbname=${DATABASE_NAME} user=postgres" <<EOF
+  DO $$ BEGIN CREATE SCHEMA IF NOT EXISTS ${SCHEMA_NAME}; END $$;
 EOF
 
-echo "If the schema did not exist, it has been created as '$SCHEMA_NAME'. Otherwise, no action was taken."
+echo "If the schema did not exist, it has been created as '${SCHEMA_NAME}'. Otherwise, no action was taken."
+
+kill $(pgrep -f 'cloud_sql_proxy')

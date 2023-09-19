@@ -5,3 +5,5 @@ scratch.txt
 scratch.py
 .idea
 *__pycache*
+
+cloud_sql_proxy

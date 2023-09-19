@@ -5,3 +5,12 @@ numpy
 cryptography
 Pillow
 google-cloud-storage
+sqlalchemy
+pybigquery
+sqlalchemy-bigquery
+passlib
+flask-sqlalchemy
+flask-wtf
+google-cloud-bigquery-storage
+pyarrow
+coverage
