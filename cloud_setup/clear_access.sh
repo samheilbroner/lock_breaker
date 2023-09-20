@@ -1,1 +1,1 @@
-unset ACCESS_TOKEN
+kill $(psgrep 'cloud_sql_proxy')

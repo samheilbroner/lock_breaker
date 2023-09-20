@@ -1,6 +1,3 @@
-import logging
-import random
-
 from lock_breaker.string import levenshtein_distance
 from lock_breaker.time import within_time_limit
 

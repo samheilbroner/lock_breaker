@@ -15,7 +15,7 @@ if [ -z "$secret_exist" ]; then
   echo "Creating secret $PSQL_PASSWORD..."
 
   # Generate a random password
-  random_password=$(openssl rand -base64 32)
+  random_password=$(openssl rand -base64 24 | tr -d '/+' | cut -c -32)
 
   # Create a new secret called 'psql_password'
   gcloud secrets create "$PSQL_PASSWORD" --replication-policy="automatic"

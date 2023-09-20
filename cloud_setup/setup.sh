@@ -11,6 +11,10 @@ execute_files_in_order() {
 
 execute_files_in_order "cloud_setup/configure_environment_variables.sh" \
                        "cloud_setup/postgres_password.sh" \
+                       "cloud_setup/app_secret_key.sh" \
                        "cloud_setup/enable_postgres.sh" \
                        "cloud_setup/setup_sql_proxy.sh" \
-                       "cloud_setup/create_schema.sh"
+                       "cloud_setup/create_schema.sh" \
+                       "cloud_setup/grant_app.sh" \
+                       "cloud_setup/update_app_yaml.sh"
+

@@ -1,11 +1,10 @@
 import datetime
 import random
-import time
 
 import pytz
 import requests
 
-from lock_breaker import IGLOO_API_URL, PIN, IGLOO_LOCK_IDS, PST
+from lock_breaker import IGLOO_API_URL, PIN, IGLOO_LOCK_IDS
 from lock_breaker.gcs import igloo_api_key_reader
 
 

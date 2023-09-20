@@ -1,9 +1,7 @@
-import logging
 import os
 from abc import abstractmethod
 from pathlib import Path
 from sys import platform
-from tempfile import mkdtemp, mktemp
 from typing import ByteString, Union
 
 import google.api_core.exceptions

@@ -1,5 +1,4 @@
-from abc import abstractmethod
-from typing import ByteString, Union
+from typing import Union
 
 from cryptography.fernet import Fernet
 

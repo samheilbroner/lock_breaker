@@ -1,20 +1,21 @@
 import datetime
-from functools import wraps
 
+import click
+import flask
 from flask import Flask, redirect, url_for, render_template, request, \
-    send_from_directory, session, flash
-from flask_sqlalchemy import SQLAlchemy
+    send_from_directory, session
 from flask_wtf import FlaskForm
 from passlib.handlers.sha2_crypt import sha256_crypt
-from pytz import utc
-from werkzeug.middleware.profiler import ProfilerMiddleware
+from sqlalchemy.orm import scoped_session, sessionmaker, declarative_base
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired
-from sqlalchemy.exc import OperationalError
-from sqlalchemy import func, exists
+from sqlalchemy import Column, String
+
+from flask_login import LoginManager, UserMixin, login_user, login_required
 
 from lock_breaker import IMAGE_FILE_NAME, PUZZLE_URL, TEMP, PUZZLE_START_TIME, \
-    PUZZLE_TEXT, MAX_MINUTES_TO_COMPLETE, BQ_URI, LOCAL_CREDENTIALS_PATH
+    PUZZLE_TEXT, MAX_MINUTES_TO_COMPLETE, APP_SECRET_KEY_NAME, PROJECT_ID
+from lock_breaker.alchemy import get_engine
 from lock_breaker.gcs import read_encryption_key, update_encryption_key, \
     igloo_api_key_writer, igloo_api_key_reader
 from lock_breaker.igloo import get_igloo_pins
@@ -22,28 +23,30 @@ from lock_breaker.password import encrypt, decrypt
 from lock_breaker.rendering import render_text
 from lock_breaker.string import text_to_copy
 from lock_breaker.time import within_time_limit
-from lock_breaker.validation import input_is_valid
+from lock_breaker.utility import handle_encryption_request, get_gcp_secret
 
-from google.oauth2.service_account import Credentials
-
-credentials = Credentials.from_service_account_file(LOCAL_CREDENTIALS_PATH)
-
+# Initialize the Flask application
 app = Flask(__name__)
+app.secret_key = get_gcp_secret(PROJECT_ID, APP_SECRET_KEY_NAME)
 
-app.secret_key = 'aslkfjfdsoi49'
-app.config['SQLALCHEMY_DATABASE_URI'] = BQ_URI
-db = SQLAlchemy(app)
+# Initialize the login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 
-def table_has_rows(db, table):
-    try:
-        return db.session.query(exists().select_from(table)).scalar()
-    except OperationalError:
-        return False
+# Initialize SQL functionality
+engine = get_engine()
+db_session = scoped_session(sessionmaker(autocommit=False,
+                                         bind=engine))
+Base = declarative_base()
+Base.query = db_session.query_property()
 
-class User(db.Model):
-    username = db.Column(db.String(50), unique=True, primary_key=True)
-    email = db.Column(db.String(100), unique=True)
-    password_hash = db.Column(db.String(128))
+class User(Base, UserMixin):
+    __table_args__ = {'schema': 'user_info'}
+    __tablename__ = 'user'
+    username = Column(String(50), unique=True, primary_key=True)
+    email = Column(String(100), unique=True)
+    password_hash = Column(String(128))
 
     def set_password(self, password):
         self.password_hash = sha256_crypt.hash(password)
@@ -51,15 +54,37 @@ class User(db.Model):
     def verify_password(self, password):
         return sha256_crypt.verify(password, self.password_hash)
 
-    __table_args__ = {'schema': 'lock_breaker'}
+    def get_id(self):
+        return self.username
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+@login_manager.user_loader
+def load_user(username):
+    return db_session.query(User).filter_by(username=username).first()
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
 
 with app.app_context():
-    db.create_all()
+    init_db()
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
 
 class SignupForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -68,24 +93,10 @@ class SignupForm(FlaskForm):
     submit = SubmitField('Signup')
 
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # check if logged in and username has not expired
-        if 'username' in session:
-            expiration_time = session['username_expiration'].replace(tzinfo=datetime.timezone.utc)
-            current_time = datetime.datetime.now(datetime.timezone.utc)
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
 
-            print(expiration_time)
-            print(current_time)
-
-            if expiration_time > current_time:
-                return f(*args, **kwargs)
-
-        flash("You need to be logged in to access this page.", "warning")
-        return redirect(url_for('login'))
-
-    return decorated_function
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -93,28 +104,54 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.verify_password(form.password.data):
-            session['username'] = form.username.data
-            session['username_expiration'] = datetime.datetime.now(tz=datetime.timezone.utc) + \
-                                             datetime.timedelta(minutes=30)
+            login_user(user)
+            flask.flash('Logged in successfully.')
             return redirect(url_for('index'))
         else:
             return 'Invalid username or password'
     return render_template('login.html', form=form)
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    form = SignupForm()
-    if form.validate_on_submit():
-        new_user = User(username=form.username.data, email=form.email.data)
-        new_user.set_password(form.password.data)
-        db.session.add(new_user)
-        db.session.commit()
-        return redirect(url_for('login'))
-    return render_template('signup.html', form=form)
+
+# Command to create a new user
+@app.cli.command("create-user")
+@click.option("--username", prompt="Username", help="The username for the new user.")
+@click.option("--email", prompt="Email", help="The email address for the new user.")
+@click.option("--password", prompt="Password", hide_input=True, confirmation_prompt=True, help="The password for the new user.")
+def create_user(username, email, password):
+    new_user = User(username=username, email=email)
+    new_user.set_password(password)
+    db_session.add(new_user)
+    db_session.commit()
+    click.echo(f"User {username} created successfully.")
+
+# Command to delete a user by username
+@app.cli.command("delete-user")
+@click.option("--username", prompt="Username", help="The username of the user to delete.")
+def delete_user(username):
+    user = db_session.query(User).filter_by(username=username).first()
+    if user:
+        db_session.delete(user)
+        db_session.commit()
+        click.echo(f"User {username} deleted successfully.")
+    else:
+        click.echo("User not found.")
+
+# Command to list all current users
+@app.cli.command("list-users")
+def list_users():
+    users = db_session.query(User).all()
+    if users:
+        click.echo("Current users:")
+        for user in users:
+            click.echo(f"Username: {user.username}, Email: {user.email}")
+    else:
+        click.echo("No users found.")
+
 @app.route('/')
 @login_required
 def index():
     return redirect(url_for(PUZZLE_URL))
+
 
 def _api_key_exists():
     try:
@@ -158,27 +195,6 @@ def puzzle():
                                          copied_text)
 
 
-def _impute_empty_string(string: str) -> str:
-    if len(string) == 0:
-        return '_'
-    else:
-        return string
-
-
-def handle_encryption_request(text, current_time, copied_text):
-    to_decrypt = _impute_empty_string(request.form['decrypt'])
-    to_encrypt = _impute_empty_string(request.form['encrypt'])
-    key = read_encryption_key()
-    code = encrypt(current_time, key)
-    if input_is_valid(copied_text, text, current_time):
-        return redirect(url_for('password',
-                                code=code,
-                                to_encrypt=to_encrypt,
-                                to_decrypt=to_decrypt))
-    else:
-        return redirect(url_for('index'))
-
-
 @app.route(f'/images/<image_name>')
 @login_required
 def serve_image(image_name):
@@ -210,6 +226,5 @@ def password(code, to_encrypt, to_decrypt):
             url_for('password', code=code, encrypt_answer=encrypt_answer,
                     decrypt_answer=decrypt_answer))
 
-
 if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+    app.run(port=8080)
