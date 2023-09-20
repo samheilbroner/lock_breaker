@@ -11,7 +11,7 @@ prod_environment:
 	gcloud auth login
 
 dev_environment:
-	gcloud config configurations activate lockbreaker-test
+	gcloud config configurations activate test-lockbreaker
 	gcloud auth login
 
 setup:

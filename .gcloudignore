@@ -23,3 +23,4 @@ venv
 images/*
 static
 .service_account_credentials.json
+cloud_sql_proxy

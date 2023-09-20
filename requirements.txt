@@ -5,12 +5,14 @@ numpy
 cryptography
 Pillow
 google-cloud-storage
-sqlalchemy
-pybigquery
-sqlalchemy-bigquery
+sqlalchemy==2.0.21
 passlib
 flask-sqlalchemy
 flask-wtf
 google-cloud-bigquery-storage
 pyarrow
 coverage
+google-cloud-secret-manager
+psycopg2
+cloud-sql-python-connector[pg8000]
+flask-login
