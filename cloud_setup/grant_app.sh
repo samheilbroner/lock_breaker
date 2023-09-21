@@ -3,6 +3,27 @@
 # Check if App Engine is already enabled and an app exists
 app_exist=$(gcloud app describe --format="get(id)" 2>/dev/null)
 
+# Get the current user's email
+CURRENT_USER_EMAIL=$(gcloud config get-value account)
+
+# Check if the email was fetched successfully
+if [ -z "$CURRENT_USER_EMAIL" ]; then
+  echo "Failed to get the current user's email. Make sure you are authenticated with gcloud."
+  exit 1
+fi
+
+# Grant roles/cloudsql.instanceUser role to the current user
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="user:$CURRENT_USER_EMAIL" \
+  --role="roles/cloudsql.instanceUser"
+
+# Grant roles/cloudsql.client role to the current user
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="user:$CURRENT_USER_EMAIL" \
+  --role="roles/cloudsql.client"
+
+echo "IAM roles granted successfully to $CURRENT_USER_EMAIL."
+
 # Check for errors and existence of App Engine app
 if [ $? -eq 0 ] && [ ! -z "$app_exist" ]; then
     echo "App Engine already exists for project $PROJECT_ID."

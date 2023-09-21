@@ -21,7 +21,7 @@ if [ -z "$secret_exist" ]; then
   gcloud secrets create "$PSQL_PASSWORD" --replication-policy="automatic"
 
   # Add the random password as a version of the secret
-  echo -n "$random_password" | gcloud secrets versions add "$PSQL_PASSWORD" --data-file=-
+  echo "$random_password" | gcloud secrets versions add "$PSQL_PASSWORD" --data-file=-
 
   echo "psql_password has been created and stored in Secret Manager."
 else

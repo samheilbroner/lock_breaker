@@ -10,6 +10,9 @@ else
 fi
 
 # Run Cloud SQL Proxy
+
 echo "Starting Cloud SQL Proxy..."
+
 kill "$(pgrep 'cloud_sql_proxy')"
+
 ./cloud_sql_proxy ${PROJECT_ID}:${REGION}:${INSTANCE_NAME} -p $PROXY_PORT &
