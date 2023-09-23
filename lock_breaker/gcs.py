@@ -8,86 +8,8 @@ import google.api_core.exceptions
 from cryptography.fernet import Fernet
 from google.cloud import storage, secretmanager
 
-from lock_breaker import ENCRYPTION_KEY_NAME, GCS_BUCKET, TEXT_GENERATION_KEY_NAME, \
+from lock_breaker import ENCRYPTION_KEY_NAME, TEXT_GENERATION_KEY_NAME, \
     IGLOO_API_KEY, PROJECT_ID
-
-
-def _make_local_tmp_path(bucket_name, gcs_path):
-    path = Path(f'/tmp/{bucket_name}')
-    file_path = path.joinpath(gcs_path)
-    folder = file_path.parent
-    if not os.path.exists(folder):
-        folder.mkdir(parents=True)
-    return file_path
-
-
-def write_string_to_storage(
-        string: Union[str, ByteString],
-        gcs_path: str,
-        bucket_name: str,
-        type='wb'
-):
-    """Write a string to a specific gcs location.
-
-    :param string: String to write.
-    :param gcs_path: GCS path to write string to.
-    :return: None
-    """
-    bucket = storage.Client().get_bucket(bucket_name)
-    blob = bucket.blob(gcs_path)
-
-    blob.upload_from_string(string)
-
-
-def read_string_from_storage(bucket_name: str, gcs_path: str,
-                             type='rb') -> str:
-    """Read string from a gcs path.
-
-    :param gcs_path: gcs path of file where string is stored as .txt.
-    :return: string stored at gcs path.
-    """
-    answer = _download_blob(bucket_name, gcs_path)
-    return answer
-
-class GCSManager:
-    def __init__(self, bucket_name,
-                 gcs_path,
-                 type='b'):
-        self.bucket_name = bucket_name
-        self.gcs_path = gcs_path
-        self.type=type
-
-    @abstractmethod
-    def __call__(self, *args, **kwargs):
-        pass
-
-class GCSReader(GCSManager):
-
-    def __init__(self, bucket_name, gcs_path, type='b'):
-        super().__init__(bucket_name, gcs_path, type)
-        self.type = 'r' + self.type
-
-    def __call__(self):
-        return read_string_from_storage(
-            bucket_name=self.bucket_name,
-            gcs_path=self.gcs_path,
-            type=self.type
-        )
-
-
-class GCSWriter(GCSManager):
-    def __init__(self, bucket_name, gcs_path, type='b'):
-        super().__init__(bucket_name, gcs_path, type)
-        self.type = 'w' + self.type
-
-    def __call__(self, key: Union[ByteString, str]):
-        """Write encryption key to project gcs bucket."""
-        write_string_to_storage(
-            key,
-            gcs_path=self.gcs_path,
-            bucket_name=self.bucket_name,
-            type=self.type
-        )
 
 class SecretManager(ABC):
     def __init__(self, project_id, secret_id):

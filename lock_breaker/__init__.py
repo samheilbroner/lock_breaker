@@ -29,14 +29,6 @@ def get_current_project_id():
 
 
 PROJECT_ID = get_current_project_id()
-def get_default_bucket_name():
-
-    # Your default bucket is often in the format <project_id>.appspot.com
-    default_bucket_name = f"{PROJECT_ID}.appspot.com"
-    return default_bucket_name
-
-GCS_BUCKET = get_default_bucket_name()
-
 IGLOO_API_URL = 'https://api.igloodeveloper.co/v2'
 PST = 'PST8PDT'
 PIN = 'pin'

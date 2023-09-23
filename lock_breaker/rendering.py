@@ -12,7 +12,7 @@ def get_size(txt, font):
     return testDraw.textsize(txt, font)
 
 
-def get_size(text, font):
+def get_image_size(text, font):
     d = ImageDraw.Draw(Image.new('RGB', (1, 1)))
     return d.textsize(text, font)
 
@@ -26,7 +26,7 @@ def image_from_text(text: str, image_destination: str):
     colorBackground = "white"
 
     font = ImageFont.truetype(font=fontname, size=fontsize)
-    width, height = get_size(text, font)
+    width, height = get_image_size(text, font)
 
     # Adding padding
     padding = 10
