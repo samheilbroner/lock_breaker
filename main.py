@@ -193,11 +193,6 @@ def password(code, to_encrypt, to_decrypt):
                                    time_limit=MAX_MINUTES_TO_COMPLETE)
         else:
             return redirect(url_for('index'))
-    elif request.method == 'POST':
-        update_encryption_key()
-        return redirect(
-            url_for('password', code=code, encrypt_answer=encrypt_answer,
-                    decrypt_answer=decrypt_answer))
 
 if __name__ == '__main__':
     app.run(port=8080)
