@@ -59,11 +59,15 @@
 </head>
 <body>
     <h1>Puzzle to Decrypt Passcode</h1>
-    <p>Copy the digits from the image into the textbox. Then enter what you want to encrypt and decrypt.</p>
-    <img src="{{ image_path }}">
-
+    <p>Copy the digits from the images into the textboxes. Then enter what you want to encrypt and decrypt.</p>
     <form method="POST">
-        <p><textarea name="text" cols="50" rows="4" style="font-size: 20pt"></textarea></p>
+        {% for img_path, input_name in image_input_pairs %}
+            <div>
+                <img src="{{ img_path }}">
+                <p><textarea name={{ input_name }} cols="50" rows="2" style="font-size: 20pt"></textarea></p>
+            </div>
+        {% endfor %}
+
         <h2>To Decrypt</h2>
         <p><textarea name="decrypt" cols="50" rows="4"></textarea></p>
 

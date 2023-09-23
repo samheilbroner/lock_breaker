@@ -12,14 +12,14 @@ from sqlalchemy import Column, String
 
 from flask_login import LoginManager, UserMixin, login_user, login_required
 
-from lock_breaker import IMAGE_FILE_NAME, PUZZLE_URL, TEMP, PUZZLE_START_TIME, \
+from lock_breaker import PUZZLE_URL, TEMP, PUZZLE_START_TIME, \
     PUZZLE_TEXT, MAX_MINUTES_TO_COMPLETE, APP_SECRET_KEY_NAME, PROJECT_ID
 from lock_breaker.alchemy import get_engine
 from lock_breaker.gcs import read_encryption_key, update_encryption_key, \
     igloo_api_key_writer, igloo_api_key_reader
 from lock_breaker.igloo import get_igloo_pins
 from lock_breaker.password import encrypt, decrypt
-from lock_breaker.rendering import render_text
+from lock_breaker.rendering import create_image_input_pairs
 from lock_breaker.string import text_to_copy
 from lock_breaker.time import within_time_limit
 from lock_breaker.utility import handle_encryption_request, get_gcp_secret
@@ -148,15 +148,21 @@ def puzzle():
         print(current_time)
         session[PUZZLE_START_TIME] = current_time
         session[PUZZLE_TEXT] = text
-        render_text(text)
+        image_input_pairs = create_image_input_pairs(text)
+        image_input_pairs = [(url_for('serve_image', image_name=image_name), input_name)
+                             for image_name, input_name in image_input_pairs]
         if _api_key_exists():
             return render_template('puzzle.html',
-                                   image_path=url_for('serve_image',
-                                                      image_name=IMAGE_FILE_NAME))
+                                   image_input_pairs=image_input_pairs
+                                   )
         else:
             return redirect(url_for('igloo_api_key'))
     elif request.method == 'POST':
-        copied_text = request.form['text']
+        copied_text = ''
+        text = session[PUZZLE_TEXT]
+        image_input_pairs = create_image_input_pairs(text)
+        for _, input_name in image_input_pairs:
+            copied_text += request.form[input_name]
         return handle_encryption_request(session[PUZZLE_TEXT],
                                          session[PUZZLE_START_TIME],
                                          copied_text)

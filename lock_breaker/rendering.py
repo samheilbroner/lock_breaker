@@ -2,8 +2,10 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-from lock_breaker import IMAGE_PATH
+from lock_breaker import TEMP
 from lock_breaker.string import add_returns_to_text
+
+import os
 
 
 def get_size(txt, font):
@@ -19,7 +21,7 @@ def get_image_size(text, font):
 
 def image_from_text(text: str, image_destination: str):
     fontname = "arial.ttf"  # Make sure this font is available on your system
-    fontsize = 15
+    fontsize = 20
 
     colorText = "black"
     colorOutline = "black"
@@ -43,7 +45,23 @@ def image_from_text(text: str, image_destination: str):
 
     img.save(image_destination)
 
+def clear_files(path):
+    # Clear all the images in the given directory
+    for file in os.listdir(path):
+        os.remove(os.path.join(path, file))
 
-def render_text(text):
+def create_image_input_pairs(text):
+    # Create temp directory if it doesn't exist
+    if not os.path.exists(TEMP):
+        os.makedirs(TEMP)
+    clear_files(TEMP)
     text_to_render = add_returns_to_text(text)
-    image_from_text(text_to_render, IMAGE_PATH)
+    texts = text_to_render.split('\n')
+    # get rid of empty strings
+    texts = [text for text in texts if text]
+    input_names = [f'input{i}' for i in range(len(texts))]
+    image_file_names = [f'{name}.png' for name in input_names]
+    image_paths = [os.path.join(TEMP, name) for name in image_file_names]
+    for text, path in zip(texts, image_paths):
+        image_from_text(text, path)
+    return list(zip(image_file_names, input_names))

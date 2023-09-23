@@ -1,9 +1,8 @@
 from google.cloud import storage
 
-TEMP = '/tmp'
-IMAGE_FILE_NAME = 'text.png'
-IMAGE_PATH = f'{TEMP}/{IMAGE_FILE_NAME}'
-TEXT_LENGTH = 10 # 2500
+TEMP = '/tmp/images'
+IMAGE_BASE_PATH = f'{TEMP}/'
+TEXT_LENGTH = 2500 # 2500
 PUZZLE_URL = 'puzzle'
 PUZZLE_START_TIME = 'PUZZLE_START_TIME'
 PUZZLE_TEXT = 'PUZZLE_TEXT'
