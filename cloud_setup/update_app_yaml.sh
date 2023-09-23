@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Specify your Google Cloud SQL connection string
 CLOUD_SQL_CONNECTION_STRING="$PROJECT_ID:$REGION:$INSTANCE_NAME"
 
 # Specify the path to your app.yaml file
@@ -19,11 +18,12 @@ if [ -z "$EXISTING_SETTING" ]; then
     echo "Added beta_settings with cloud_sql_instances to $APP_YAML_PATH."
   else
     # beta_settings block exists, add cloud_sql_instances under it
-    sed -i "/beta_settings:/a \ \ cloud_sql_instances: \"$CLOUD_SQL_CONNECTION_STRING\"" $APP_YAML_PATH
-    echo "Added cloud_sql_instances to existing beta_settings in $APP_YAML_PATH."
+    sed -i "" "/beta_settings:/a \\cloud_sql_instances: \"$CLOUD_SQL_CONNECTION_STRING\"" $APP_YAML_PATH
+  echo "Added cloud_sql_instances to existing beta_settings in $APP_YAML_PATH."
   fi
 else
   # cloud_sql_instances setting already exists, update it
-  sed -i "s|cloud_sql_instances: \".*\"|cloud_sql_instances: \"$CLOUD_SQL_CONNECTION_STRING\"|g" $APP_YAML_PATH
+  sed -i "" "s|cloud_sql_instances: \".*\"|cloud_sql_instances: \"$CLOUD_SQL_CONNECTION_STRING\"|g" $APP_YAML_PATH
   echo "Updated cloud_sql_instances in $APP_YAML_PATH."
 fi
+

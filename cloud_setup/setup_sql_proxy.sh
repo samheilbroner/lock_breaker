@@ -15,4 +15,8 @@ echo "Starting Cloud SQL Proxy..."
 
 kill "$(pgrep 'cloud_sql_proxy')"
 
+# You must configure the ADC before launching the cloud sql proxy.
+gcloud auth application-default login
+
+#Launch the proxy.
 ./cloud_sql_proxy ${PROJECT_ID}:${REGION}:${INSTANCE_NAME} -p $PROXY_PORT &

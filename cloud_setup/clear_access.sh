@@ -1,1 +1,1 @@
-kill $(psgrep 'cloud_sql_proxy')
+kill $(pgrep 'cloud_sql_proxy')
