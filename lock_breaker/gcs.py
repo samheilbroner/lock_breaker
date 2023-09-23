@@ -1,15 +1,15 @@
 import os
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from pathlib import Path
 from sys import platform
 from typing import ByteString, Union
 
 import google.api_core.exceptions
 from cryptography.fernet import Fernet
-from google.cloud import storage
+from google.cloud import storage, secretmanager
 
-from lock_breaker import PASSWORD_PATH, GCS_BUCKET, TEXT_GENERATION_KEY_PATH, \
-    IGLOO_API_KEY_PATH
+from lock_breaker import ENCRYPTION_KEY_NAME, GCS_BUCKET, TEXT_GENERATION_KEY_NAME, \
+    IGLOO_API_KEY, PROJECT_ID
 
 
 def _make_local_tmp_path(bucket_name, gcs_path):
@@ -33,15 +33,10 @@ def write_string_to_storage(
     :param gcs_path: GCS path to write string to.
     :return: None
     """
-    if platform == 'darwin':
-        file_path = _make_local_tmp_path(bucket_name, gcs_path)
-        with open(file_path, type) as f:
-            f.write(string)
-    else:
-        bucket = storage.Client().get_bucket(bucket_name)
-        blob = bucket.blob(gcs_path)
+    bucket = storage.Client().get_bucket(bucket_name)
+    blob = bucket.blob(gcs_path)
 
-        blob.upload_from_string(string)
+    blob.upload_from_string(string)
 
 
 def read_string_from_storage(bucket_name: str, gcs_path: str,
@@ -51,12 +46,7 @@ def read_string_from_storage(bucket_name: str, gcs_path: str,
     :param gcs_path: gcs path of file where string is stored as .txt.
     :return: string stored at gcs path.
     """
-    if platform == 'darwin':
-        file_path = _make_local_tmp_path(bucket_name, gcs_path)
-        with open(file_path, type) as f:
-            answer = f.read()
-    else:
-        answer = _download_blob(bucket_name, gcs_path)
+    answer = _download_blob(bucket_name, gcs_path)
     return answer
 
 class GCSManager:
@@ -99,71 +89,116 @@ class GCSWriter(GCSManager):
             type=self.type
         )
 
+class SecretManager(ABC):
+    def __init__(self, project_id, secret_id):
+        self.project_id = project_id
+        self.secret_id = secret_id
+        self.client = secretmanager.SecretManagerServiceClient()
 
-class KeyUpdater(GCSManager):
+    @abstractmethod
+    def __call__(self, *args, **kwargs):
+        pass
 
-    def __init__(self, bucket_name, gcs_path, type='b'):
-        super().__init__(bucket_name, gcs_path, type=type)
-        self.writer = GCSWriter(
-            bucket_name=bucket_name, gcs_path=gcs_path,
-            type=self.type
+class SecretReader(SecretManager):
+    def __init__(self, project_id, secret_id):
+        super().__init__(project_id, secret_id)
+
+    def __call__(self):
+        return self.read_secret()
+
+    def read_secret(self):
+        name = f"projects/{self.project_id}/secrets/{self.secret_id}/versions/latest"
+        response = self.client.access_secret_version(request={"name": name})
+        return response.payload.data.decode("UTF-8")
+
+class SecretWriter(SecretManager):
+    def __init__(self, project_id, secret_id):
+        super().__init__(project_id, secret_id)
+
+    def __call__(self, value):
+        return self.write_secret(value)
+
+    def write_secret(self, value):
+        parent = f"projects/{self.project_id}"
+        payload = value.encode("UTF-8")
+
+        secret = self.client.create_secret(
+            request={
+                "parent": parent,
+                "secret_id": self.secret_id,
+                "secret": {
+                    "replication": {
+                        "automatic": {}
+                    }
+                }
+            }
+        )
+
+        version = self.client.add_secret_version(
+            request={
+                "parent": secret.name,
+                "payload": {"data": payload}
+            }
+        )
+
+        return version.name
+
+
+class SecretUpdater(SecretManager):
+    def __init__(self, project_id, secret_id):
+        super().__init__(project_id, secret_id)
+        self.writer = SecretWriter(
+            project_id=project_id, secret_id=secret_id
         )
 
     def __call__(self, *args, **kwargs):
         key = Fernet.generate_key()
-        self.writer(key)
+        self.writer(key.decode('utf-8'))
 
-
-class RobustGCSReader(GCSManager):
-    def __init__(self, bucket_name,
-                 gcs_path):
-        super().__init__(bucket_name, gcs_path)
-        self.gcs_reader = GCSReader(
-            self.bucket_name,
-            self.gcs_path
+class RobustSecretReader(SecretManager):
+    def __init__(self, project_id, secret_id):
+        super().__init__(project_id, secret_id)
+        self.reader = SecretReader(
+            project_id=project_id, secret_id=secret_id
         )
-        self.key_updater = KeyUpdater(
-            self.bucket_name,
-            self.gcs_path
+        self.secret_updater = SecretUpdater(
+            project_id=project_id, secret_id=secret_id
         )
 
-    def _update_key(self):
-        self.key_updater()
-        answer = self.gcs_reader()
+    def _update_secret(self):
+        self.secret_updater()
+        answer = self.reader()
         return answer
 
     def __call__(self):
         try:
-            answer = self.gcs_reader()
+            answer = self.reader()
         except google.api_core.exceptions.NotFound:
-            answer = self._update_key()
-        except FileNotFoundError:
-            answer = self._update_key()
+            answer = self._update_secret()
         return answer
 
-
-update_encryption_key = KeyUpdater(
-    GCS_BUCKET, PASSWORD_PATH
-)
-read_encryption_key = RobustGCSReader(
-    bucket_name=GCS_BUCKET,
-    gcs_path=PASSWORD_PATH
-)
-read_text_generation_key = RobustGCSReader(
-    bucket_name=GCS_BUCKET,
-    gcs_path=TEXT_GENERATION_KEY_PATH
-)
-igloo_api_key_reader = GCSReader(
-    bucket_name=GCS_BUCKET,
-    gcs_path=IGLOO_API_KEY_PATH,
-    type=''
-)
-igloo_api_key_writer = GCSWriter(
-    bucket_name=GCS_BUCKET,
-    gcs_path=IGLOO_API_KEY_PATH,
-    type=''
+update_encryption_key = SecretUpdater(
+    PROJECT_ID, ENCRYPTION_KEY_NAME
 )
 
+read_encryption_key = RobustSecretReader(
+    PROJECT_ID, ENCRYPTION_KEY_NAME
+)
+
+read_text_generation_key = RobustSecretReader(
+    PROJECT_ID,
+    TEXT_GENERATION_KEY_NAME
+)
+
+igloo_api_key_reader = SecretReader(
+    project_id=PROJECT_ID,
+    secret_id=IGLOO_API_KEY
+)
+
+igloo_api_key_writer = SecretWriter(
+    project_id=PROJECT_ID,
+    secret_id=IGLOO_API_KEY
+)
 
 def _download_blob(bucket_name: str, blob_name: str) -> str:
     bucket = storage.Client().get_bucket(bucket_name)

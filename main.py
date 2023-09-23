@@ -26,6 +26,9 @@ from lock_breaker.utility import handle_encryption_request, get_gcp_secret
 
 # Initialize the Flask application
 app = Flask(__name__)
+
+from google.auth import default
+
 app.secret_key = get_gcp_secret(PROJECT_ID, APP_SECRET_KEY_NAME)
 
 # Initialize the login manager

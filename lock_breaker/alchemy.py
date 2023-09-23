@@ -38,7 +38,7 @@ def connect_with_connector(username, password, dbname) -> sqlalchemy.engine.base
             user=db_user,
             password=db_pass,
             db=db_name,
-            ip_type=ip_type,
+            ip_type=ip_type
         )
         return conn
 

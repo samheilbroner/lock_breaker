@@ -16,7 +16,7 @@ def random_digits_from_encryption_key(message, key: str = TEXT_GENERATION_KEY,
     :param password_length: length of return password
     :return: a password of digits
     """
-    token = message + key.decode('utf-8')
+    token = message + key
     password = sha_hash(token) % (10 ** (password_length))
     return str(password)
 

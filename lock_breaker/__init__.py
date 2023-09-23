@@ -3,22 +3,20 @@ from google.cloud import storage
 TEMP = '/tmp'
 IMAGE_FILE_NAME = 'text.png'
 IMAGE_PATH = f'{TEMP}/{IMAGE_FILE_NAME}'
-TEXT_LENGTH = 2500
+TEXT_LENGTH = 10 # 2500
 PUZZLE_URL = 'puzzle'
 PUZZLE_START_TIME = 'PUZZLE_START_TIME'
 PUZZLE_TEXT = 'PUZZLE_TEXT'
 MAX_MINUTES_TO_COMPLETE = 25
 
-PASSWORD_PATH = 'key.txt'
-TEXT_GENERATION_KEY_PATH = 'text_generation_key.txt'
-IGLOO_API_KEY_PATH = 'igloo_api_key.txt'
+ENCRYPTION_KEY_NAME = 'encryption_key'
+TEXT_GENERATION_KEY_NAME = 'text_generation_key'
+IGLOO_API_KEY = 'igloo_api_key'
 DEFAULT_PASSWORD_LENGTH = 8
 
 POSTGRES_PASSWORD_LABEL = 'psql_password'
 REGION = 'us-west1'
 APP_SECRET_KEY_NAME = 'app_secret_key'
-
-
 
 
 def get_current_project_id():
