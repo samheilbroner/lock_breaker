@@ -18,8 +18,7 @@ if [ -z "$INSTANCE_EXIST" ]; then
   echo "SQL instance '$INSTANCE_NAME' does not exist. Creating now."
   gcloud sql instances create $INSTANCE_NAME \
     --database-version=POSTGRES_13 \
-    --cpu=1 \
-    --memory=4GiB \
+    --tier=db-f1-micro \
     --region=$REGION
 else
   # Instance exists
