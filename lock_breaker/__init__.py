@@ -2,7 +2,7 @@ from google.cloud import storage
 
 TEMP = '/tmp/images'
 IMAGE_BASE_PATH = f'{TEMP}/'
-TEXT_LENGTH = 2500 # 2500
+TEXT_LENGTH = 2500
 PUZZLE_URL = 'puzzle'
 PUZZLE_START_TIME = 'PUZZLE_START_TIME'
 PUZZLE_TEXT = 'PUZZLE_TEXT'
