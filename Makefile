@@ -11,6 +11,7 @@ prod_environment:
 	gcloud config configurations activate personal
 	gcloud auth login
 	gcloud auth application-default login
+	gcloud config set project lock-breaker-358122
 
 dev_environment:
 	gcloud config configurations activate test-lockbreaker
